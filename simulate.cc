@@ -18,10 +18,7 @@ int main(int argc, char **argv) {
   }
   gsl_rng *gen = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(gen, time(NULL));
-  double Rutherford_cutoff;
-  libconfig::Config cfg;
-  cfg.readFile(argv[1]);
-  cfg.lookupValue("Rutherford_cutoff", Rutherford_cutoff);
+
   std::vector<Atom> atoms;
   int a, z;
   std::string name;
@@ -38,14 +35,14 @@ int main(int argc, char **argv) {
     getline(iss, token, ' ');
     a = atoi(token.c_str());
     if (name == "hydrogen") {
-      Atom tmp(a, z, "./Splines/" + name + "_el_ruth_cross_sec.txt",
-               Rutherford_cutoff);
+      Atom tmp(a, z, "./Splines/" + name + "_el_ruth_rate.txt",
+               "./Splines/" + name + "_el_ruth_angle.txt");
       atoms.push_back(tmp);
     } else {
-      Atom tmp(a, z, "./Splines/" + name + "_ne_rate.txt",
-               "./Splines/" + name + "_el_ruth_cross_sec.txt",
-               "./Splines/" + name + "_ne_energyangle_cdf.txt",
-               Rutherford_cutoff);
+      Atom tmp(a, z, "./Splines/" + name + "_el_ruth_rate.txt",
+               "./Splines/" + name + "_ne_rate.txt",
+               "./Splines/" + name + "_el_ruth_angle.txt",
+               "./Splines/" + name + "_ne_energyangle_cdf.txt");
       atoms.push_back(tmp);
     }
   }
@@ -66,6 +63,9 @@ int main(int argc, char **argv) {
   double nozzle_radius, e0, initial_x_sd;
   std::vector<double> x(3, 0), w(2, 0);
   w[0] = M_PI / 2;
+
+  libconfig::Config cfg;
+  cfg.readFile(argv[1]);
   cfg.lookupValue("nozzle_radius", nozzle_radius);
   cfg.lookupValue("initial_x_sd", initial_x_sd);
 

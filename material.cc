@@ -6,17 +6,17 @@
 #define MAT
 
 struct Atom {
-  Atom(const int a0, const int z0, const std::string ne_r,
-       const std::string el_ruth_cs, const std::string ne_ea,
-       const double cutoff)
-      : a(a0), z(z0), el_ruth_rate(el_ruth_cs, cutoff), ne_rate(ne_r),
-        el_ruth_angle_cdf(el_ruth_cs, cutoff), ne_energy_angle(ne_ea) {}
+  Atom(const int a0, const int z0, const std::string el_ruth_r,
+       const std::string ne_r, const std::string el_ruth_a,
+       const std::string ne_ea)
+      : a(a0), z(z0), el_ruth_rate(el_ruth_r), ne_rate(ne_r),
+        el_ruth_angle_cdf(el_ruth_a), ne_energy_angle(ne_ea) {}
 
   // Constructor for zero non-elastic rate for hydrogen
-  Atom(const int a0, const int z0, const std::string el_ruth_cs,
-       const double cutoff)
-      : a(a0), z(z0), el_ruth_rate(el_ruth_cs, cutoff), ne_rate(),
-        el_ruth_angle_cdf(el_ruth_cs, cutoff), ne_energy_angle() {}
+  Atom(const int a0, const int z0, const std::string el_ruth_r,
+       const std::string el_ruth_a)
+      : a(a0), z(z0), el_ruth_rate(el_ruth_r), ne_rate(),
+        el_ruth_angle_cdf(el_ruth_a), ne_energy_angle() {}
 
   Atom(const Atom &other)
       : a(other.a), z(other.z), el_ruth_rate(other.el_ruth_rate),

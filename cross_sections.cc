@@ -31,53 +31,6 @@ struct CS_1d {
       rate.push_back(atof(token.c_str()));
     }
   }
-  CS_1d(const std::string filename, const double cuttoff) : energy(), rate() {
-    std::ifstream file;
-    file.open(filename);
-    std::string line, token;
-    getline(file, line);
-    std::stringstream iss;
-    iss << line;
-    while (getline(iss, token, ' ')) {
-      energy.push_back(atof(token.c_str()));
-    }
-    double tmp_val, tmp_val_old, Lin_inter_val;
-    int tmp_count, tmp_count_2;
-    bool Lin_inter_bool;
-    while (getline(file, line)) {
-      tmp_count = 0;
-      Lin_inter_bool = true;
-      std::stringstream iss2;
-      iss2 << line;
-      while (getline(iss2, token, ' ')) {
-        tmp_val = atof(token.c_str());
-        if (tmp_val > cuttoff) {
-          tmp_count++;
-          tmp_val_old = tmp_val;
-        } else if (Lin_inter_bool) {
-          Lin_inter_val = (tmp_val - cuttoff) / (tmp_val - tmp_val_old);
-          Lin_inter_bool = false;
-        }
-      }
-      tmp_count_2 = 0;
-      Lin_inter_bool = true;
-      getline(file, line);
-      std::stringstream iss3;
-      iss3 << line;
-      while (getline(iss3, token, ' ')) {
-        tmp_val = atof(token.c_str());
-        if (tmp_count_2 < tmp_count) {
-          tmp_count_2++;
-          tmp_val_old = tmp_val;
-        } else if (Lin_inter_bool) {
-          rate.push_back(tmp_val * Lin_inter_val +
-                         (1 - Lin_inter_val) * tmp_val_old);
-          Lin_inter_bool = false;
-        }
-      }
-    }
-    file.close();
-  }
 
   CS_1d(const CS_1d &other) : energy(other.energy), rate(other.rate) {}
 
@@ -190,8 +143,7 @@ struct CS_3d {
       sample_from_energy_index(energy_index, u, out_energy_cm, out_rvalue);
     } else {
       sample_from_energy_index(energy_index, u, out_energy_cm, out_rvalue);
-      sample_from_energy_index(energy_index - 1, u, out_energy_cm_2,
-                               out_rvalue_2);
+      sample_from_energy_index(energy_index - 1, u, out_energy_cm_2, out_rvalue_2);
       diff = (e - energy[energy_index - 1]) /
              (energy[energy_index] - energy[energy_index - 1]);
       out_energy_cm = out_energy_cm * diff + out_energy_cm_2 * (1 - diff);
@@ -208,8 +160,7 @@ struct CS_3d {
 
 struct CS_2d {
 
-  CS_2d(const std::string filename, const double cuttoff)
-      : energy(), exit_angle(), cdf() {
+  CS_2d(const std::string filename) : energy(), exit_angle(), cdf() {
     std::ifstream file;
     file.open(filename);
     std::string line, token;
@@ -220,49 +171,20 @@ struct CS_2d {
       energy.push_back(atof(token.c_str()));
     }
     std::vector<double> tmp_vec;
-    double tmp_val, tmp_val_old, Lin_inter_val, total_rate;
-    int tmp_count, tmp_count_2;
-    bool Lin_inter_bool;
     while (getline(file, line)) {
-      tmp_vec.clear();
-      tmp_count = 0;
-      Lin_inter_bool = true;
-      std::stringstream iss2;
-      iss2 << line;
-      while (getline(iss2, token, ' ')) {
-        tmp_val = atof(token.c_str());
-        if (tmp_val > cuttoff) {
-          tmp_count++;
-          tmp_vec.push_back(tmp_val);
-          tmp_val_old = tmp_val;
-        } else if (Lin_inter_bool) {
-          Lin_inter_val = (cuttoff - tmp_val_old) / (tmp_val - tmp_val_old);
-          Lin_inter_bool = false;
-          tmp_vec.push_back(cuttoff);
-        }
-      }
-      exit_angle.push_back(tmp_vec);
-      tmp_count_2 = 0;
-      Lin_inter_bool = true;
-      getline(file, line);
       tmp_vec.clear();
       std::stringstream iss3;
       iss3 << line;
       while (getline(iss3, token, ' ')) {
-        tmp_val = atof(token.c_str());
-        if (tmp_count_2 < tmp_count) {
-          tmp_count_2++;
-          tmp_vec.push_back(tmp_val);
-          tmp_val_old = tmp_val;
-        } else if (Lin_inter_bool) {
-          tmp_vec.push_back(tmp_val * Lin_inter_val +
-                            (1 - Lin_inter_val) * tmp_val_old);
-          Lin_inter_bool = false;
-        }
+        tmp_vec.push_back(atof(token.c_str()));
       }
-      total_rate = tmp_vec.back();
-      for (double &i : tmp_vec) {
-        i /= total_rate;
+      exit_angle.push_back(tmp_vec);
+      getline(file, line);
+      tmp_vec.clear();
+      std::stringstream iss4;
+      iss4 << line;
+      while (getline(iss4, token, ' ')) {
+        tmp_vec.push_back(atof(token.c_str()));
       }
       cdf.push_back(tmp_vec);
     }

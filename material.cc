@@ -14,9 +14,9 @@ struct Atom {
 
   // Constructor for zero non-elastic rate for hydrogen
   Atom(const int a0, const int z0, const std::string el_ruth_cs,
-       const double cutoff)
-      : a(a0), z(z0), el_ruth_rate(el_ruth_cs, cutoff), ne_rate(),
-        el_ruth_angle_cdf(el_ruth_cs, cutoff), ne_energy_angle() {}
+       const double cutoff, const double back_cutoff)
+      : a(a0), z(z0), el_ruth_rate(el_ruth_cs, cutoff, back_cutoff), ne_rate(),
+        el_ruth_angle_cdf(el_ruth_cs, cutoff, back_cutoff), ne_energy_angle() {}
 
   Atom(const Atom &other)
       : a(other.a), z(other.z), el_ruth_rate(other.el_ruth_rate),

@@ -17,10 +17,11 @@ int main(int argc, char **argv) {
   }
   gsl_rng *gen = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(gen, time(NULL));
-  double Rutherford_cutoff;
+  double Rutherford_cutoff, Backscatter_cutoff;
   libconfig::Config cfg;
   cfg.readFile(argv[1]);
   cfg.lookupValue("Rutherford_cutoff", Rutherford_cutoff);
+  cfg.lookupValue("Backscatter_cutoff", Backscatter_cutoff);
   std::vector<Atom> atoms;
   int a, z;
   std::string name;
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
     a = atoi(token.c_str());
     if (name == "hydrogen") {
       Atom tmp(a, z, "./Splines/" + name + "_el_ruth_cross_sec.txt",
-               Rutherford_cutoff);
+               Rutherford_cutoff, Backscatter_cutoff);
       atoms.push_back(tmp);
     } else {
       Atom tmp(a, z, "./Splines/" + name + "_ne_rate.txt",

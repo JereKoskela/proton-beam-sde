@@ -1,5 +1,8 @@
 # Proton-beam-SDE
 This repository houses a simulator for an SDE describing a the path of a proton in proton beam therapy.
+This branch is records the version used for the simulations in
+[Crossley et al. (2025)](https://doi.org/10.1098/rspa.2024.0687). See the main branch for an
+up-to-date implementation.
 
 # Installation
 

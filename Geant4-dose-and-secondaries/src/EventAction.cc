@@ -28,11 +28,9 @@
 /// \brief Implementation of the EventAction class
 
 #include "EventAction.hh"
-#include "Analysis.hh"
+#include "G4AnalysisManager.hh"
 #include "G4RunManager.hh"
 #include "G4Event.hh"
-#include <RunAction.hh>
-#include "G4SDManager.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

@@ -43,11 +43,9 @@
 #include "G4VSolid.hh"
 #include "G4Box.hh"
 #include "G4Tubs.hh"
-#include "G4SDManager.hh"
 
 #include "G4VisAttributes.hh"
 #include "G4SystemOfUnits.hh"
-#include "DetectorSD.hh"
 #include "G4UserLimits.hh"
 
 #include "G4Region.hh"
@@ -63,18 +61,14 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 DetectorConstruction::DetectorConstruction() : G4VUserDetectorConstruction(),
-	fCheckOverlaps(true),
-    fPhantomSize(20.*cm),
-    fAirThickness(0.*cm),
-    fBoneThickness(0.*cm)
+    fCheckOverlaps(true),
+    fConfig("water")
 {
     fMessenger = new G4GenericMessenger(this, "/phantom/", "Phantom geometry control");
-    fMessenger->DeclarePropertyWithUnit("phantomSize", "cm",
-        fPhantomSize, "Set initial size of cubic water phantom.");
-    fMessenger->DeclarePropertyWithUnit("airThickness", "cm",
-        fAirThickness, "Set initial air gap thickness to be added.");
-    fMessenger->DeclarePropertyWithUnit("boneThickness", "cm",
-    fBoneThickness, "Set bone slab thickness to be added.");
+    fMessenger->DeclareMethod("select", &DetectorConstruction::SelectPhantom)
+  .SetCandidates("water slab insert")
+  .SetGuidance("Select phantom configuration.");
+
     DefineMaterials();
 }
 
@@ -101,6 +95,15 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+void DetectorConstruction::SelectPhantom(const G4String& name)
+{
+    fConfig = name;
+    G4RunManager::GetRunManager()->GeometryHasBeenModified();
+    G4cout << "Phantom selected: " << fConfig << G4endl;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
 void DetectorConstruction::DefineMaterials()
 {
     // standard material defined using NIST Manager
@@ -108,155 +111,194 @@ void DetectorConstruction::DefineMaterials()
     nistManager->FindOrBuildMaterial("G4_WATER");
     nistManager->FindOrBuildMaterial("G4_AIR");
     nistManager->FindOrBuildMaterial("G4_B-100_BONE");
-	G4String name, symbol;
+
+    // build low density lung equivalent
+    // Elements
+    auto* elH  = nistManager->FindOrBuildElement("H");
+    auto* elC  = nistManager->FindOrBuildElement("C");
+    auto* elN  = nistManager->FindOrBuildElement("N");
+    auto* elO  = nistManager->FindOrBuildElement("O");
+    auto* elNa = nistManager->FindOrBuildElement("Na");
+    auto* elP  = nistManager->FindOrBuildElement("P");
+    auto* elS  = nistManager->FindOrBuildElement("S");
+    auto* elCl = nistManager->FindOrBuildElement("Cl");
+    auto* elK = nistManager->FindOrBuildElement("K");
+
+    auto compressedLung = new G4Material("compressedLung",0.385 *g/cm3,9);
+    compressedLung -> AddElement(elH,0.103);
+    compressedLung -> AddElement(elC,0.107);
+    compressedLung -> AddElement(elN,0.032);
+    compressedLung -> AddElement(elO,0.746);
+    compressedLung -> AddElement(elNa,0.002);
+    compressedLung -> AddElement(elP,0.002);
+    compressedLung -> AddElement(elS,0.003);
+    compressedLung -> AddElement(elCl,0.003);
+    compressedLung -> AddElement(elK,0.002);
+    compressedLung->GetIonisation()->SetMeanExcitationEnergy(75.3 *eV);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void DetectorConstruction::ConstructSDandField()
-{
-    auto phantomSD = new DetectorSD("PhantomSD");
-    G4SDManager::GetSDMpointer()->AddNewDetector(phantomSD);
-    SetSensitiveDetector("water", phantomSD);
-    if (fAirThickness > 0.){
-        SetSensitiveDetector("air", phantomSD);
-    }
-    if (fBoneThickness > 0.){
-        SetSensitiveDetector("bone", phantomSD);
-    }
+void DetectorConstruction::BuildConfig_Water(G4LogicalVolume *worldLV, G4double phantomSize) {
+    G4Material *waterMaterial = G4Material::GetMaterial("G4_WATER");
+    auto* phantSolid   = new G4Box("phantom", phantomSize/2., phantomSize/2., phantomSize/2.);
+    auto* phantLogical = new G4LogicalVolume(phantSolid, waterMaterial, "phantom");
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0), phantLogical, "phantom",
+        worldLV, false, 0);
+
+    // Set step limit in phantom
+    auto stepLimit = new G4UserLimits(0.5*mm);
+    phantLogical->SetUserLimits(stepLimit);
+
+    auto *waterVisAtt = new G4VisAttributes(G4Colour(0, 0.63, 1));
+    waterVisAtt->SetVisibility(true);
+    waterVisAtt->SetDaughtersInvisible(false);
+    phantLogical->SetVisAttributes(waterVisAtt);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void DetectorConstruction::SetCubicPhantomSize(G4double val) {
-    fPhantomSize = val;
+void DetectorConstruction::BuildConfig_Slab(G4LogicalVolume *worldLV, G4double phantomSize, G4double waterThickness,
+    G4double boneThickness, G4double lungThickness) {
+
+    // Set step limit in phantom
+    auto stepLimit = new G4UserLimits(0.5*mm);
+
+    // Materials in use
+    G4Material *waterMaterial = G4Material::GetMaterial("G4_WATER");
+    auto* boneMaterial  = G4Material::GetMaterial("G4_B-100_BONE");
+    auto lungMaterial = G4Material::GetMaterial("compressedLung");
+
+    // Definitions
+    // Water
+    auto* phantSolid   = new G4Box("phantom", phantomSize/2., phantomSize/2., phantomSize/2.);
+    auto* phantLogical = new G4LogicalVolume(phantSolid, waterMaterial, "phantom");
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0), phantLogical, "phantom",
+        worldLV, false, 0);
+
+    phantLogical->SetUserLimits(stepLimit);
+
+    auto *waterVisAtt = new G4VisAttributes(G4Colour(0, 0.63, 1));
+    waterVisAtt->SetVisibility(true);
+    waterVisAtt->SetDaughtersInvisible(false);
+    phantLogical->SetVisAttributes(waterVisAtt);
+
+    // Bone
+    auto* boneSolid   = new G4Box("bone", boneThickness/2., phantomSize/2., phantomSize/2.);
+    auto* boneLogical = new G4LogicalVolume(boneSolid, boneMaterial, "bone");
+    new G4PVPlacement(nullptr,
+      G4ThreeVector(-phantomSize/2 + waterThickness + boneThickness/2, 0, 0),
+      boneLogical, "bone", phantLogical, false, 0, fCheckOverlaps);
+
+    boneLogical->SetUserLimits(stepLimit);
+
+    auto* boneVisAtt = new G4VisAttributes(G4Colour(0.94, 0.95, 0.75));
+    boneVisAtt->SetVisibility(true);
+    boneLogical->SetVisAttributes(boneVisAtt);
+
+    // Lung
+    auto* lungSolid   = new G4Box("lung", lungThickness/2., phantomSize/2., phantomSize/2.);
+    auto* lungLogical = new G4LogicalVolume(lungSolid, lungMaterial, "lung");
+    new G4PVPlacement(nullptr,
+      G4ThreeVector(-phantomSize/2 + waterThickness + boneThickness + lungThickness/2, 0, 0),
+      lungLogical, "lung", phantLogical, false, 0, fCheckOverlaps);
+
+    lungLogical->SetUserLimits(stepLimit);
+
+    auto* lungVisAtt = new G4VisAttributes(G4Colour(0.94, 0.85, 0.94));
+    lungVisAtt->SetVisibility(true);
+    lungLogical->SetVisAttributes(lungVisAtt);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void DetectorConstruction::SetBoneThickness(G4double val) {
-    if (val + fAirThickness > fPhantomSize) {
-        G4ExceptionDescription msg;
-        msg << "Invalid geometry: bone thickness (" << val/cm
-            << " cm) + air thickness (" << fAirThickness/cm
-        << " cm) exceeds phantom size (" << fPhantomSize/cm
-        << " cm)";
-        G4Exception("DetectorConstruction::SetBoneThickness",
-                    "Geom001", JustWarning, msg);
-        return; // reject the new value
-    }
-    fBoneThickness = val;
-}
+void DetectorConstruction::BuildConfig_Insert(G4LogicalVolume *worldLV, G4double phantomSize,  G4ThreeVector bonePos,
+            G4double boneThickness) {
+    // Set step limit in phantom
+    auto stepLimit = new G4UserLimits(0.5*mm);
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+    // Materials in use
+    G4Material *waterMaterial = G4Material::GetMaterial("G4_WATER");
+    auto* boneMaterial  = G4Material::GetMaterial("G4_B-100_BONE");
 
-void DetectorConstruction::SetAirThickness(G4double val) {
-    if (val + fBoneThickness > fPhantomSize) {
-        G4ExceptionDescription msg;
-        msg << "Invalid geometry: air thickness (" << val/cm
-            << " cm) + bone thickness (" << fBoneThickness/cm
-        << " cm) exceeds phantom size (" << fPhantomSize/cm
-    << " cm)";
-        G4Exception("DetectorConstruction::SetAirThickness",
-                    "Geom002", JustWarning, msg);
-        return; // reject the new value
-    }
-    fAirThickness = val;
+    // Definitions
+    // Water
+    auto* phantSolid   = new G4Box("phantom", phantomSize/2., phantomSize/2., phantomSize/2.);
+    auto* phantLogical = new G4LogicalVolume(phantSolid, waterMaterial, "phantom");
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0), phantLogical, "phantom",
+        worldLV, false, 0);
+
+    phantLogical->SetUserLimits(stepLimit);
+
+    auto *waterVisAtt = new G4VisAttributes(G4Colour(0, 0.63, 1));
+    waterVisAtt->SetVisibility(true);
+    waterVisAtt->SetDaughtersInvisible(false);
+    phantLogical->SetVisAttributes(waterVisAtt);
+
+    // Bone
+    auto* boneSolid   = new G4Box("bone", boneThickness/2., phantomSize/4., phantomSize/2.);
+    auto* boneLogical = new G4LogicalVolume(boneSolid, boneMaterial, "bone");
+    new G4PVPlacement(nullptr, bonePos,
+      boneLogical, "bone", phantLogical, false, 0, fCheckOverlaps);
+
+    boneLogical->SetUserLimits(stepLimit);
+
+    auto* boneVisAtt = new G4VisAttributes(G4Colour(0.94, 0.95, 0.75));
+    boneVisAtt->SetVisibility(true);
+    boneLogical->SetVisAttributes(boneVisAtt);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 G4VPhysicalVolume *DetectorConstruction::DefineVolumes()
 {
-
+    G4cout << "\n### DefineVolumes() called. fConfig = " << fConfig << " ###\n" << G4endl;
     // Geometry parameters
-    G4double worldSizeXY = fPhantomSize*5;
-    G4double worldSizeZ = fPhantomSize*5;
+    G4double phantomSize = 20*cm;
+    G4double worldSizeXY = phantomSize*5;
+    G4double worldSizeZ = phantomSize*5;
 
-    // Get materials - change them if needed
+    // For slab phantom
+    G4double waterSlabThickness = 2*cm;
+    G4double boneSlabThickness = 1*cm;
+    G4double lungSlabThickness = 2*cm;
+
+    // For insert phantom
+    G4double boneInsertThickness = 2*cm;
+    G4double depth = 3*cm;
+    G4ThreeVector boneInsertPos = G4ThreeVector(-phantomSize/2 + depth + boneInsertThickness/2,
+        phantomSize/4., 0.);
+
+
     G4Material *defaultMaterial = G4Material::GetMaterial("G4_AIR");
-	G4Material *tissueMaterial = G4Material::GetMaterial("G4_WATER");
-    G4Material *boneMaterial = G4Material::GetMaterial("G4_B-100_BONE");
 
     //
     // WORLD
     //
     G4VSolid *worldSolid
-        = new G4Box("World", worldSizeXY / 2, worldSizeXY / 2, worldSizeZ / 2); // its size
+        = new G4Box("World", worldSizeXY / 2, worldSizeXY / 2, worldSizeZ / 2);
 
-    auto *worldLogical = new G4LogicalVolume(worldSolid, defaultMaterial, "World");       // its name
+    auto *worldLogical = new G4LogicalVolume(worldSolid, defaultMaterial, "World");
 
-    G4VPhysicalVolume *worldPV = new G4PVPlacement(nullptr,        // no rotation
-            G4ThreeVector(),  // at (0,0,0)
-            worldLogical,          // its logical volume
-            "World",          // its name
-            nullptr,                // its mother  volume
-            false,            // no boolean operation
-            0,                // copy number
-            fCheckOverlaps);  // checking overlaps
+    G4VPhysicalVolume *worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLogical,
+            "World", nullptr, false, 0, fCheckOverlaps);
+
     //
-    // PHANTOM
+    // PHANTOM - Call config builder
     //
-    auto* phantSolid   = new G4Box("phantom", fPhantomSize/2., fPhantomSize/2., fPhantomSize/2.);
-    auto* phantLogical = new G4LogicalVolume(phantSolid, defaultMaterial, "phantom");
-    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0), phantLogical, "phantom",
-        worldLogical, false, 0);
-
-    // Set step limit in phantom
-    auto stepLimit = new G4UserLimits(0.5*mm);
-
-    phantLogical->SetUserLimits(stepLimit);
-    // Air slab
-    if (fAirThickness > 0.) {
-        auto* airSolid   = new G4Box("air", fAirThickness/2., fPhantomSize/2., fPhantomSize/2.);
-        auto* airLogical = new G4LogicalVolume(airSolid, defaultMaterial, "air");
-        new G4PVPlacement(nullptr, G4ThreeVector(-fPhantomSize/2 + fAirThickness/2, 0, 0),
-            airLogical, "air",
-            phantLogical, false, 0);
-
-        auto *airVisAtt = new G4VisAttributes(G4Colour(1, 1, 1));
-        airVisAtt->SetVisibility(true);
-        airLogical->SetVisAttributes(airVisAtt);
-        airLogical->SetUserLimits(stepLimit);
-
-        // create region and attach logical volume
-        G4Region* airRegion = new G4Region("AirRegion");
-        airRegion->AddRootLogicalVolume(airLogical);
-
-        // create production cuts and set a large range for electrons
-        G4ProductionCuts* cuts = new G4ProductionCuts();
-        cuts->SetProductionCut(1.*mm, "e-");
-        // assign cuts to region
-        airRegion->SetProductionCuts(cuts);
+    if (fConfig == "water") {
+        BuildConfig_Water(worldLogical, phantomSize);
     }
-    // Bone slab
-    if (fBoneThickness > 0.) {
-        auto* boneSolid   = new G4Box("bone", fBoneThickness/2., fPhantomSize/2., fPhantomSize/2.);
-        auto* boneLogical = new G4LogicalVolume(boneSolid, boneMaterial, "bone");
-        new G4PVPlacement(nullptr, G4ThreeVector(-fPhantomSize/2 + fAirThickness + fBoneThickness/2, 0, 0),
-            boneLogical, "bone",
-            phantLogical, false, 0);
-
-        boneLogical->SetUserLimits(stepLimit);
-
-        auto *boneVisAtt = new G4VisAttributes(G4Colour(0.5, 0.5, 0.5));
-        boneVisAtt->SetVisibility(true);
-        boneLogical->SetVisAttributes(boneVisAtt);
+    else if (fConfig == "slab") {
+        BuildConfig_Slab(worldLogical, phantomSize, waterSlabThickness, boneSlabThickness, lungSlabThickness);
     }
-    // Water slab - cover the remaining bit of the phantom
-    G4double tissueThickness = fPhantomSize-fAirThickness-fBoneThickness;
-    auto* waterSolid   = new G4Box("water", tissueThickness/2., fPhantomSize/2., fPhantomSize/2.);
-    auto* waterLogical = new G4LogicalVolume(waterSolid, tissueMaterial, "water");
-    new G4PVPlacement(nullptr, G4ThreeVector(fPhantomSize/2 - tissueThickness/2, 0, 0),
-        waterLogical, "water",
-        phantLogical, false, 0);
-    waterLogical->SetUserLimits(stepLimit);
-
-    auto *waterVisAtt = new G4VisAttributes(G4Colour(0.2, 0.6, 0.9));
-    waterVisAtt->SetVisibility(true);
-    waterVisAtt->SetDaughtersInvisible(false);
-    waterLogical->SetVisAttributes(waterVisAtt);
-
+    else if (fConfig == "insert") {
+        BuildConfig_Insert(worldLogical, phantomSize, boneInsertPos, boneInsertThickness);
+    }
+    else {
+        G4Exception("DetectorConstruction::DefineVolumes", "BadConfig", FatalException,
+                    ("Unknown /phantom/select option: " + fConfig).c_str());
+    }
 
     //
     // Visualization attributes

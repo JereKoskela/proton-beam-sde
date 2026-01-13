@@ -56,8 +56,6 @@ void ActionInitialization::BuildForMaster() const
 
 void ActionInitialization::Build() const
 {
-    EventAction* event;
-    RunAction*   run;
     SetUserAction(new PrimaryGeneratorAction);
     SetUserAction(new RunAction);
     SetUserAction(new EventAction);

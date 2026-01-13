@@ -1,7 +1,4 @@
-# Modify phantom geometry, uncomment what is needed:
-#/phantom/phantomSize 30. cm
-/phantom/airThickness 5. cm
-/phantom/boneThickness 2. cm
+/phantom/select insert
 
 /run/initialize
 
@@ -27,9 +24,9 @@
 
 # Energy is gaussian profile
 /gps/ene/type Gauss
-/gps/ene/mono 100 MeV
+/gps/ene/mono 150 MeV
 /gps/ene/sigma 0.0001 MeV
 
-/output/doseFileName ../../Output/G4_TotalEneDepMap_1E6_100MeV_air+bone+h2o.csv
+/output/rootFileName ../../Output/G4_1E6_150MeV_insert.root
 
 /run/beamOn 1000000

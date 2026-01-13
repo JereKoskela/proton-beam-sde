@@ -46,21 +46,19 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     	DetectorConstruction();
     	~DetectorConstruction() override;
 
-  	public:
     	G4VPhysicalVolume* Construct() override;
-        void ConstructSDandField() override;
-		void SetBoneThickness(G4double val);
-		void SetAirThickness(G4double val);
-	    void SetCubicPhantomSize(G4double val);
-
 		G4bool      fCheckOverlaps; // option to activate checking of volumes overlaps
 
   	private:
     	static void DefineMaterials();
     	G4VPhysicalVolume* DefineVolumes();
-		G4double fPhantomSize;
-		G4double fAirThickness;
-	    G4double fBoneThickness;
+		void BuildConfig_Water(G4LogicalVolume* worldLV, G4double phantomSize);
+		void BuildConfig_Slab(G4LogicalVolume* worldLV, G4double phantomSize, G4double waterThickness,
+			G4double boneThickness, G4double lungThickness);
+		void BuildConfig_Insert(G4LogicalVolume* worldLV, G4double phantomSize, G4ThreeVector bonePos,
+			G4double boneThickness);
+		void SelectPhantom(const G4String& name);
+		G4String fConfig;
 		G4GenericMessenger* fMessenger;
 
 };

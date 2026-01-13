@@ -31,7 +31,7 @@
 #include "G4Track.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4RunManager.hh"
-#include "Analysis.hh"
+#include "G4AnalysisManager.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -46,6 +46,7 @@ TrackingAction::~TrackingAction()
 
 void TrackingAction::PreUserTrackingAction(const G4Track* track)
 {
+	// Track creation info can be obtained from here
 	// fInitEnergy = track->GetKineticEnergy();
 	// const G4ThreeVector& creationPos = track->GetPosition();
 	// fInitPosX = creationPos.x();

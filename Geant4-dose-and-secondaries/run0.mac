@@ -1,10 +1,5 @@
 /tracking/verbose 2
 
-# Modify phantom geometry, uncomment what is needed:
-#/phantom/phantomSize 30. cm
-#/phantom/airThickness 5. cm
-#/phantom/boneThickness 0.5 cm
-
 /run/initialize
 
 # Source geometry:
@@ -32,7 +27,6 @@
 /gps/ene/mono 150 MeV
 /gps/ene/sigma 0.0001 MeV
 
-/output/doseFileName ../../Output/test.csv
 /output/rootFileName ../../Output/test.root
 /run/beamOn 1
 

@@ -1,7 +1,4 @@
-# Modify phantom geometry, uncomment what is needed:
-#/phantom/phantomSize 30. cm
-#/phantom/airThickness 5. cm
-#/phantom/boneThickness 2. cm
+/phantom/select water
 
 /run/initialize
 
@@ -30,6 +27,6 @@
 /gps/ene/mono 150 MeV
 /gps/ene/sigma 0.0001 MeV
 
-/output/doseFileName ../../Output/G4_TotalEneDepMap_1E6_150MeV.csv
+/output/rootFileName ../../Output/G4_1E6_150MeV_water.root
 
 /run/beamOn 1000000

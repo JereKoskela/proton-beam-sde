@@ -40,8 +40,10 @@ target_link_libraries(ProtonTherapy ${Geant4_LIBRARIES} )
 # relies on these scripts being in the current working directory.
 #
 set(ProtonTherapy_SCRIPTS
-    gui.mac init_vis.mac run0.mac vis.mac
-        run_bone_100MeV.mac run_bone_150MeV.mac run_water_100MeV.mac run_water_150MeV.mac run_air.mac
+    gui.mac init_vis.mac run0.mac vis.mac refresh_vis.mac
+        run_water_100MeV.mac run_water_150MeV.mac
+        run_slab_100MeV.mac run_slab_150MeV.mac
+        run_insert_100MeV.mac run_insert_150MeV.mac
 )
 
 foreach(_script ${ProtonTherapy_SCRIPTS})

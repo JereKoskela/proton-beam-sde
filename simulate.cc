@@ -24,7 +24,8 @@ int main(int argc, char **argv) {
   cfg.lookupValue("rutherford_cutoff", rutherford_cutoff);
   cfg.lookupValue("backscatter_cutoff", backscatter_cutoff);
   std::vector<Atom> atoms;
-  int a, z;
+  double a;
+  int z;
   std::string name;
   std::ifstream file;
   file.open("./Materials/atoms.txt");
@@ -37,7 +38,7 @@ int main(int argc, char **argv) {
     getline(iss, token, ' ');
     z = atoi(token.c_str());
     getline(iss, token, ' ');
-    a = atoi(token.c_str());
+    a = atof(token.c_str());
     if (name == "hydrogen") {
       Atom tmp(a, z, "./Splines/" + name + "_el_ruth_cross_sec.txt",
                rutherford_cutoff, backscatter_cutoff);

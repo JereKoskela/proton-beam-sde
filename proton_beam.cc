@@ -204,13 +204,12 @@ struct proton_path {
       direction_y = ((w0 - w1) * (cos(w0) * sin(v0) - cos(w1) * sin(v1)) -
                      (v0 - v1) * (cos(v0) * sin(w0) - cos(v1) * sin(w1))) /
                     denom_xy;
-      if (direction_x < 0 &&
-          -(next_x_change - x[ix - 1][0]) / direction_x < dt) {
-        time_step = -(next_x_change - x[ix - 1][0]) / direction_x;
-      }
-      if (direction_x > 0 &&
-          (x[ix - 1][0] - prev_x_change) / direction_x < dt) {
-        time_step = (x[ix - 1][0] - prev_x_change) / direction_x;
+      if (direction_x < 0) {
+        time_step =
+            fmin(time_step, -(next_x_change - x[ix - 1][0]) / direction_x);
+      } else {
+        time_step =
+            fmin(time_step, (x[ix - 1][0] - prev_x_change) / direction_x);
       }
       if ((direction_y > 0 && x[ix - 1][1] < y_change) ||
           (direction_y < 0 && x[ix - 1][1] > y_change)) {
@@ -218,18 +217,16 @@ struct proton_path {
       }
       x[ix][0] = x[ix - 1][0] - time_step * direction_x;
       x[ix][1] = x[ix - 1][1] + time_step * direction_y;
-
     } else {
       // Linear approximation when denominator is too small
       direction_x = sin(v0) * cos(w0);
       direction_y = sin(v0) * sin(w0);
-      if (direction_x > 0 &&
-          (next_x_change - x[ix - 1][0]) / direction_x < dt) {
-        time_step = (next_x_change - x[ix - 1][0]) / direction_x;
-      }
-      if (direction_x < 0 &&
-          -(x[ix - 1][0] - prev_x_change) / direction_x < dt) {
-        time_step = -(x[ix - 1][0] - prev_x_change) / direction_x;
+      if (direction_x > 0) {
+        time_step =
+            fmin(time_step, (next_x_change - x[ix - 1][0]) / direction_x);
+      } else {
+        time_step =
+            fmin(time_step, -(x[ix - 1][0] - prev_x_change) / direction_x);
       }
       if ((direction_y > 0 && x[ix - 1][1] < y_change) ||
           (direction_y < 0 && x[ix - 1][1] > y_change)) {

@@ -296,11 +296,21 @@ struct proton_path {
       }
       if (fabs(x[ix - 1][0] - change_points_x[material_index]) < 1e-9) {
         material_index++;
+        if (x[ix - 1][1] > change_points_y[material_index - 1]) {
+          y_half = 1;
+        } else {
+          y_half = 0;
+        }
       } else if (fabs(x[ix - 1][0] - change_points_x[material_index - 1]) <
                  1e-9) {
         material_index--;
-      }
-      if (fabs(x[ix - 1][1] - change_points_y[material_index - 1]) < 1e-9) {
+        if (x[ix - 1][1] > change_points_y[material_index - 1]) {
+          y_half = 1;
+        } else {
+          y_half = 0;
+        }
+      } else if (fabs(x[ix - 1][1] - change_points_y[material_index - 1]) <
+                 1e-9) {
         y_half = (y_half + 1) % 2;
       }
     }

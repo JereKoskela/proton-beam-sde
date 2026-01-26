@@ -438,7 +438,10 @@ def plot_all_slices(
 
     ax[2].set_xlabel("x [cm]")
     ax[2].set_ylabel("y [cm]")
-    ax.minorticks_on()
+
+    ax[0].minorticks_on()
+    ax[1].minorticks_on()
+    ax[2].minorticks_on()
     return f
 
 

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pymedphys
 from scipy.interpolate import interp1d
 from matplotlib.lines import Line2D
+import uproot4
 
 plt.rcParams.update({"font.size": 13})
 
@@ -45,16 +46,12 @@ def retrieve_sde_output(
     return volume
 
 
-# Obtain geant4 output from the csv file generated. Based on 20x20x20 cm3 cubic phantom by default (voxel size 1 mm)
-def retrieve_g4_output(filename, array_size=(200, 200, 200)):
-    x, y, z, vals = np.genfromtxt(filename, unpack=True, delimiter=",", skip_header=1)
-    x = x.astype(int)
-    y = y.astype(int)
-    z = z.astype(int)
-    volume = np.zeros(array_size)
-    for i in range(len(x)):
-        volume[x[i], y[i], z[i]] = vals[i]
-    return volume
+# Obtain geant4 output from the root file generated. Based on 20x20x20 cm3 cubic phantom by default (voxel size 1 mm)
+def retrieve_g4_output(filename):
+    data = uproot4.open(filename)
+    hist = data["TotalEneDep"]
+    values = hist.values()
+    return values
 
 
 # Cut down a 3D array to the region of interest
@@ -145,6 +142,8 @@ def plot_slice(
             )
             ax[i].set_title(title, fontweight="bold")
             ax[i].set_xlabel(labels[1])
+            ax[i].minorticks_on()
+
             if i == 0:
                 ax[i].set_ylabel(labels[0])
         f.colorbar(
@@ -159,6 +158,7 @@ def plot_slice(
         f.colorbar(im, label=r"Log$_{10}$(Dose per primary) [MeV/g]", pad=0.02)
         ax.set_xlabel(labels[1])
         ax.set_ylabel(labels[0])
+        ax.minorticks_on()
 
     return f
 
@@ -277,6 +277,8 @@ def plot_multiple_bragg_peaks(
     ax.legend()
     ax.set_xlabel("Depth [cm]")
     ax.minorticks_on()
+    if how == "proj":
+        ax.ticklabel_format(style="sci", axis="y", scilimits=(3, 3))
 
     # Difference
     ax_diff.set_ylabel("Diff vs ref [%]")
@@ -375,14 +377,26 @@ def plot_all_slices(
         slicey_log = np.log10(slicey)
         slicez_log = np.log10(slicez)
 
-    slicex_log[np.isneginf(slicex_log)] = np.nan
-    slicey_log[np.isneginf(slicey_log)] = np.nan
-    slicez_log[np.isneginf(slicez_log)] = np.nan
+    for s in (slicex_log, slicey_log, slicez_log):
+        s[np.isneginf(s)] = np.nan
 
-    vmin = np.nanmin([slicex_log, slicey_log, slicez_log])
-    vmax = np.nanmax([slicex_log, slicey_log, slicez_log])
+    mins = [
+        np.nanmin(s)
+        for s in (slicex_log, slicey_log, slicez_log)
+        if np.isfinite(s).any()
+    ]
+    maxs = [
+        np.nanmax(s)
+        for s in (slicex_log, slicey_log, slicez_log)
+        if np.isfinite(s).any()
+    ]
 
-    f, ax = plt.subplots(1, 3, sharey=True, figsize=(14, 5), layout="compressed")
+    if mins and maxs:
+        vmin, vmax = min(mins), max(maxs)
+    else:
+        vmin, vmax = 0.0, 1.0
+
+    f, ax = plt.subplots(1, 3, figsize=(14, 5), layout="compressed")
     im1 = ax[0].imshow(
         slicex_log.T,
         extent=[ymin, ymax, zmin, zmax],
@@ -413,6 +427,18 @@ def plot_all_slices(
     ax[0].set_title("X central slice", fontweight="bold")
     ax[1].set_title("Y central slice", fontweight="bold")
     ax[2].set_title("Z central slice", fontweight="bold")
+    for a in ax:
+        a.set_aspect("equal")
+
+    ax[0].set_xlabel("y [cm]")
+    ax[0].set_ylabel("z [cm]")
+
+    ax[1].set_xlabel("x [cm]")
+    ax[1].set_ylabel("z [cm]")
+
+    ax[2].set_xlabel("x [cm]")
+    ax[2].set_ylabel("y [cm]")
+    ax.minorticks_on()
     return f
 
 
@@ -433,6 +459,7 @@ def pymedphys_gamma(
     zmin=-10,
     zmax=10,
     voxelOrigin=np.array([0, -10, -10]),
+    plot_img=False,
     vmax=None,
 ):
     ref_img = define_ROI(ref_img, xmin, xmax, ymin, ymax, zmin, zmax, voxelOrigin)
@@ -465,47 +492,58 @@ def pymedphys_gamma(
         f"{pass_rate:.2f}% pass ({method}) - DTA = {dta} mm, DD = {dd}%, "
         f"Threshold = {th_percent}%"
     )
-
     g = np.nan_to_num(gamma_image, nan=0)
-    im = g[:, :, g.shape[2] // 2].T
-    f, ax = plt.subplots(figsize=(6, 4), layout="compressed")
-    plt.title(
-        f"{pass_rate:.2f}% pass ({method}) \n DTA = {dta} mm, DD = {dd}%, "
-        f"Threshold = {th_percent}%",
-        fontweight="bold",
-    )
-    if vmax is not None:
-        im = ax.imshow(
-            im,
-            extent=[xmin, xmax, ymin, ymax],
-            cmap="turbo",
-            interpolation="spline16",
-            aspect="auto",
-            vmax=vmax,
+    if plot_img:
+        im = g[:, :, g.shape[2] // 2].T
+        f, ax = plt.subplots(figsize=(6, 4), layout="compressed")
+        plt.title(
+            f"{pass_rate:.2f}% pass ({method}) \n DTA = {dta} mm, DD = {dd}%, "
+            f"Threshold = {th_percent}%",
+            fontweight="bold",
         )
-    else:
-        im = ax.imshow(
-            im,
-            extent=[xmin, xmax, ymin, ymax],
-            cmap="turbo",
-            interpolation="spline16",
-            aspect="auto",
-        )
-    ax.set_xlabel("x [cm]")
-    ax.set_ylabel("y [cm]")
-    if xmax < 10:
-        ax.set_xticks(np.arange(0, xmax, 2))
-    else:
-        ax.set_xticks(np.arange(0, xmax, 5))
-    cbar = plt.colorbar(im, pad=0.02)
-    cbar.set_label(r"Gamma index $\gamma$")
-    return f
+        if vmax is not None:
+            im = ax.imshow(
+                im,
+                extent=[xmin, xmax, ymin, ymax],
+                cmap="turbo",
+                interpolation="spline16",
+                aspect="auto",
+                vmax=vmax,
+                origin="lower",
+            )
+        else:
+            im = ax.imshow(
+                im,
+                extent=[xmin, xmax, ymin, ymax],
+                cmap="turbo",
+                interpolation="spline16",
+                aspect="auto",
+                origin="lower",
+            )
+        ax.set_xlabel("x [cm]")
+        ax.set_ylabel("y [cm]")
+        if xmax < 10:
+            ax.set_xticks(np.arange(0, xmax, 2))
+        else:
+            ax.set_xticks(np.arange(0, xmax, 5))
+        cbar = plt.colorbar(im, pad=0.02)
+        cbar.set_label(r"Gamma index $\gamma$")
+        ax.minorticks_on()
+    return pass_rate, g
 
 
 # Modifies a density matrix by adding a slab that starts at tmin (mm) and finishes at tmax (mm) with a density rho
-def include_new_material(density_mat, tmin, tmax, rho):
+# For cases with lateral heterogeneity, define a ycut that separates top to bottom. An insert will be located at the top half by default.
+# If lower is set to true, the insert will be located at the bottom half.
+def include_new_material(density_mat, tmin, tmax, rho, ycut=None, lower=False):
     new_mat = density_mat.copy()
-    new_mat[tmin:tmax, :, :] = rho
+    if ycut is None:
+        new_mat[tmin:tmax, :, :] = rho
+    else:
+        if lower:
+            new_mat[tmin:tmax, ycut:, :] = rho
+        else:
+            new_mat[tmin:tmax, :ycut, :] = rho
     return new_mat
 
 
@@ -523,6 +561,56 @@ def compute_percentage_difference(g4_dd, sde_dd, max_diff=50, threshold=1e-6):
     # Clip values above max_diff just in case
     diff = np.clip(diff, 0, max_diff)
     return diff
+
+
+# From 3D dose distribution, compute percentage difference voxel-to-voxel
+# Differences are normalised by percentile (default: 99th percentile of ref dose. If None, local difference is used)
+def compute_percentage_voxelDiff(
+    ref_img,
+    target_img,
+    xmin,
+    xmax,
+    ymin,
+    ymax,
+    zmin,
+    zmax,
+    voxelOrigin=np.array([0, -10, -10]),
+    th_percent=1,
+    norm_percentile=99,
+):
+    dose_ref = define_ROI(ref_img, xmin, xmax, ymin, ymax, zmin, zmax, voxelOrigin)
+    dose_eval = define_ROI(target_img, xmin, xmax, ymin, ymax, zmin, zmax, voxelOrigin)
+
+    mask = dose_ref > np.max(dose_ref) * th_percent / 100
+
+    if norm_percentile is None:
+        d_norm = dose_ref[mask]
+    else:
+        d_norm = np.percentile(dose_ref[mask], norm_percentile)
+
+    diff = np.zeros_like(dose_ref, dtype=float)
+    diff[mask] = 100 * np.abs(dose_ref[mask] - dose_eval[mask]) / d_norm
+
+    img = diff[:, :, diff.shape[2] // 2].T
+    f, ax = plt.subplots(figsize=(6, 4), layout="compressed")
+    im = ax.imshow(
+        img,
+        extent=[xmin, xmax, ymin, ymax],
+        cmap="nipy_spectral",
+        interpolation="spline16",
+        aspect="auto",
+        origin="lower",
+    )
+    ax.set_xlabel("x [cm]")
+    ax.set_ylabel("y [cm]")
+    if xmax < 10:
+        ax.set_xticks(np.arange(0, xmax, 2))
+    else:
+        ax.set_xticks(np.arange(0, xmax, 5))
+    cbar = plt.colorbar(im, pad=0.02)
+    cbar.set_label(r"Relative difference [%]")
+    ax.minorticks_on()
+    return f
 
 
 # Finds the proton range from an IDD profile called dose. Allows for changing from R90 to whatever percentage.
@@ -590,7 +678,7 @@ def compare_bragg_peaks(
         x, g4_idd1, label=f"Geant4 {energy1} MeV", linestyle="--", color="darkturquoise"
     )
     ax1.set_ylabel(r"Total dose per primary [MeV/g]")
-    ax1.legend()
+    ax1.ticklabel_format(style="sci", axis="y", scilimits=(3, 3))
     ax1.minorticks_on()
 
     # Difference
@@ -600,9 +688,8 @@ def compare_bragg_peaks(
         label=f"{energy1} MeV",
         color="darkblue",
     )
-    ax1_diff.set_ylabel("Diff [%]")
+    ax1_diff.set_ylabel("Local diff [%]")
     ax1_diff.set_xlabel("Depth [cm]")
-    ax1_diff.legend()
     ax1_diff.minorticks_on()
     ax1_diff.set_ylim(0, max_diff1)
 
@@ -620,7 +707,6 @@ def compare_bragg_peaks(
         x, g4_cdd1, label=f"Geant4 {energy1} MeV", linestyle="--", color="darkturquoise"
     )
     ax2.set_ylabel(r"Dose per primary [MeV/g]")
-    ax2.legend()
     ax2.minorticks_on()
 
     # Difference
@@ -630,9 +716,8 @@ def compare_bragg_peaks(
         label=f"{energy1} MeV",
         color="darkblue",
     )
-    ax2_diff.set_ylabel("Diff [%]")
+    ax2_diff.set_ylabel("Local diff [%]")
     ax2_diff.set_xlabel("Depth [cm]")
-    ax2_diff.legend()
     ax2_diff.minorticks_on()
     ax2_diff.set_ylim(0, max_diff2)
 
@@ -670,6 +755,11 @@ def compare_bragg_peaks(
             label=f"{energy2} MeV",
             color="darkred",
         )
+
+    ax1.legend()
+    ax2.legend()
+    ax1_diff.legend()
+    ax2_diff.legend()
 
     return f1, f2
 

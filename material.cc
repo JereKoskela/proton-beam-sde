@@ -130,8 +130,6 @@ struct Material {
     double mpcsq = 938.346; // mass of proton * speed of light squared, MeV
     double pv = (2 * mpcsq + e) * e / (mpcsq + e);
     double betasq = (2 * mpcsq + e) * e / pow(mpcsq + e, 2);
-    double c = 29979245800; // speed of light
-    double vel = sqrt(betasq) * c;
     double p = pv / sqrt(betasq); // momentum in MeV / c.
     // effective chi_c_sq is just the sum of individual elements
     double chi_c_sq = 0;
@@ -139,7 +137,7 @@ struct Material {
     for (unsigned int i = 0; i < at.size(); i++) {
       chi_c_sq += x[i] * at[i].z * (at[i].z + 1.0) / at[i].a;
       chi_a_sq_vec[i] = 2.007e-5 * pow(at[i].z, 2 / 3) *
-                        (1 + 3.34 * pow(at[i].z / (137 * vel), 2)) / (p * p);
+                        (1 + 3.34 * pow(at[i].z / (137 * sqrt(betasq)), 2)) / (p * p);
     }
     chi_c_sq *= 0.157 * dt * density / (pv * pv);
     // effective chi_a_sq is a weighted average on the log-scale

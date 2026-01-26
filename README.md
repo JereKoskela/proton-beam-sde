@@ -43,6 +43,7 @@ visualisation. To use it you will need:
 - itk (tested on version 5.4.4),
 - pymedphys (tested on version 0.40.0),
 - scipy (tested on version 1.14.1)
+- uproot (tested on version 4.0.0)
 
 All the necessary functions are written in `SDE_vs_G4.py`, whereas the execution scripts to produce the relevant figures 
 is written in `SDE_vs_G4_executionScript.py` (if the Geant4 files are available) or `SDE_plots.py` (for exclusively

@@ -137,7 +137,8 @@ struct Material {
     for (unsigned int i = 0; i < at.size(); i++) {
       chi_c_sq += x[i] * at[i].z * (at[i].z + 1.0) / at[i].a;
       chi_a_sq_vec[i] = 2.007e-5 * pow(at[i].z, 2 / 3) *
-                        (1 + 3.34 * pow(at[i].z / (137 * sqrt(betasq)), 2)) / (p * p);
+                        (1 + 3.34 * pow(at[i].z / (137 * sqrt(betasq)), 2)) /
+                        (p * p);
     }
     chi_c_sq *= 0.157 * dt * density / (pv * pv);
     // effective chi_a_sq is a weighted average on the log-scale

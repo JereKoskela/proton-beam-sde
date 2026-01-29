@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     p.reset(e0, x, w);
     len = p.simulate(dt, absorption_e, change_points_x, change_points_y,
                      interval_materials, materials, gen);
-    grid.add(p.x, p.s, len);
+    grid.add_with_interpolation(p.x, p.s, len);
   }
   grid.print(out_path);
   gsl_rng_free(gen);

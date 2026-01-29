@@ -62,6 +62,98 @@ struct Grid {
     return;
   }
 
+  void add_with_interpolation(const std::vector<std::vector<double>> &y,
+                              const std::vector<double> &s, const int len) {
+    int ix, ix0;
+    unsigned int iy, iz;
+    std::vector<double> tmp(1, 0);
+    std::vector<std::vector<double>> tmp2(1, tmp);
+    double curr_voxel_weight, prev_voxel_weight;
+    for (int i = 1; i < len; i++) {
+      ix = floor(y[i][0] / dx);
+      ix0 = floor(y[i - 1][0] / dx);
+      iy = floor(fabs(y[i][1]) / dx);
+      iz = floor(fabs(y[i][2]) / dx);
+      if (ix0 >= 0 && ix >= ix0) {
+        curr_voxel_weight = (y[i][0] - ix * dx) / (y[i][0] - y[i - 1][0]);
+        prev_voxel_weight = (ix * dx - y[i - 1][0]) / (y[i][0] - y[i - 1][0]);
+      } else {
+        curr_voxel_weight = 1.0;
+        prev_voxel_weight = 0.0;
+      }
+      if (ix >= 0 && ix0 >= 0) {
+        if (ix >= int(x_pp.size())) {
+          x_pp.resize(ix + 1, tmp2);
+          x_pm.resize(ix + 1, tmp2);
+          x_mp.resize(ix + 1, tmp2);
+          x_mm.resize(ix + 1, tmp2);
+        }
+        if (y[i][1] >= 0 && y[i][2] >= 0) {
+          if (iy >= x_pp[ix].size()) {
+            x_pp[ix].resize(iy + 1, tmp);
+          }
+          if (iz >= x_pp[ix][iy].size()) {
+            x_pp[ix][iy].resize(iz + 1, 0);
+          }
+          if (iy >= x_pp[ix0].size()) {
+            x_pp[ix0].resize(iy + 1, tmp);
+          }
+          if (iz >= x_pp[ix0][iy].size()) {
+            x_pp[ix0][iy].resize(iz + 1, 0);
+          }
+          x_pp[ix][iy][iz] += s[i] * curr_voxel_weight;
+          x_pp[ix0][iy][iz] += s[i] * prev_voxel_weight;
+        } else if (y[i][1] >= 0 && y[i][2] < 0) {
+          if (iy >= x_pm[ix].size()) {
+            x_pm[ix].resize(iy + 1, tmp);
+          }
+          if (iz >= x_pm[ix][iy].size()) {
+            x_pm[ix][iy].resize(iz + 1, 0);
+          }
+          if (iy >= x_pm[ix0].size()) {
+            x_pm[ix0].resize(iy + 1, tmp);
+          }
+          if (iz >= x_pm[ix0][iy].size()) {
+            x_pm[ix0][iy].resize(iz + 1, 0);
+          }
+          x_pm[ix][iy][iz] += s[i] * curr_voxel_weight;
+          x_pm[ix0][iy][iz] += s[i] * prev_voxel_weight;
+        } else if (y[i][1] < 0 && y[i][2] >= 0) {
+          if (iy >= x_mp[ix].size()) {
+            x_mp[ix].resize(iy + 1, tmp);
+          }
+          if (iz >= x_mp[ix][iy].size()) {
+            x_mp[ix][iy].resize(iz + 1, 0);
+          }
+          if (iy >= x_mp[ix0].size()) {
+            x_mp[ix0].resize(iy + 1, tmp);
+          }
+          if (iz >= x_mp[ix0][iy].size()) {
+            x_mp[ix0][iy].resize(iz + 1, 0);
+          }
+          x_mp[ix][iy][iz] += s[i] * curr_voxel_weight;
+          x_mp[ix0][iy][iz] += s[i] * prev_voxel_weight;
+        } else {
+          if (iy >= x_mm[ix].size()) {
+            x_mm[ix].resize(iy + 1, tmp);
+          }
+          if (iz >= x_mm[ix][iy].size()) {
+            x_mm[ix][iy].resize(iz + 1, 0);
+          }
+          if (iy >= x_mm[ix0].size()) {
+            x_mm[ix0].resize(iy + 1, tmp);
+          }
+          if (iz >= x_mm[ix0][iy].size()) {
+            x_mm[ix0][iy].resize(iz + 1, 0);
+          }
+          x_mm[ix][iy][iz] += s[i] * curr_voxel_weight;
+          x_mm[ix0][iy][iz] += s[i] * prev_voxel_weight;
+        }
+      }
+    }
+    return;
+  }
+
   void add(const std::vector<std::vector<double>> &y,
            const std::vector<double> &s, const int len) {
     int ix;

@@ -49,13 +49,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     : G4VUserPrimaryGeneratorAction(),
       fParticleGun(0)
 {
-	//G4int n_particle = 1;
-	//fParticleGun  = new G4ParticleGun(n_particle);
 	fParticleGun = new G4GeneralParticleSource();
-
-	//fParticleGun->SetParticleEnergy(0*eV);
-	//fParticleGun->SetParticlePosition(G4ThreeVector(0.,0.,0.));
-	//fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,0.,1.));
 	SetDefaultKinematic();
 }
 
@@ -74,10 +68,7 @@ void PrimaryGeneratorAction::SetDefaultKinematic()
 	G4ParticleDefinition* particle = particle_table->FindParticle("proton");
 
 	fParticleGun->SetParticleDefinition(particle);
-	fParticleGun->SetParticlePosition(G4ThreeVector(30.,0.,0.)*cm);
-	//fParticleGun->SetParticleEnergy(4.4 *MeV);
-	//fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,0.,1.));
-
+	fParticleGun->SetParticlePosition(G4ThreeVector(-10.,0.,0.)*cm);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

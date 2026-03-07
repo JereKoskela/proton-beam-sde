@@ -18,13 +18,14 @@ int main(int argc, char **argv) {
   }
   gsl_rng *gen = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(gen, time(NULL));
-  double Rutherford_cutoff, Backscatter_cutoff;
+  double rutherford_cutoff, backscatter_cutoff;
   libconfig::Config cfg;
   cfg.readFile(argv[1]);
-  cfg.lookupValue("Rutherford_cutoff", Rutherford_cutoff);
-  cfg.lookupValue("Backscatter_cutoff", Backscatter_cutoff);
+  cfg.lookupValue("rutherford_cutoff", rutherford_cutoff);
+  cfg.lookupValue("backscatter_cutoff", backscatter_cutoff);
   std::vector<Atom> atoms;
-  int a, z;
+  double a;
+  int z;
   std::string name;
   std::ifstream file;
   file.open("./Materials/atoms.txt");
@@ -37,16 +38,16 @@ int main(int argc, char **argv) {
     getline(iss, token, ' ');
     z = atoi(token.c_str());
     getline(iss, token, ' ');
-    a = atoi(token.c_str());
+    a = atof(token.c_str());
     if (name == "hydrogen") {
       Atom tmp(a, z, "./Splines/" + name + "_el_ruth_cross_sec.txt",
-               Rutherford_cutoff, Backscatter_cutoff);
+               rutherford_cutoff, backscatter_cutoff);
       atoms.push_back(tmp);
     } else {
       Atom tmp(a, z, "./Splines/" + name + "_ne_rate.txt",
                "./Splines/" + name + "_el_ruth_cross_sec.txt",
                "./Splines/" + name + "_ne_energyangle_cdf.txt",
-               Rutherford_cutoff);
+               rutherford_cutoff);
       atoms.push_back(tmp);
     }
   }
@@ -81,15 +82,22 @@ int main(int argc, char **argv) {
   cfg.lookupValue("replicates", nrep);
 
   const libconfig::Setting &root = cfg.getRoot();
-  std::vector<double> change_points(root["change_points"].getLength() + 2);
-  change_points[0] = -DBL_MAX;
-  for (unsigned int i = 0; i < change_points.size() - 2; i++) {
-    change_points[i + 1] = root["change_points"][i];
+  std::vector<double> change_points_x(root["change_points_x"].getLength() + 2);
+  change_points_x[0] = -DBL_MAX;
+  for (unsigned int i = 0; i < change_points_x.size() - 2; i++) {
+    change_points_x[i + 1] = root["change_points_x"][i];
   }
-  change_points[change_points.size() - 1] = DBL_MAX;
-  std::vector<int> interval_materials(root["interval_materials"].getLength());
+  change_points_x[change_points_x.size() - 1] = DBL_MAX;
+  std::vector<double> change_points_y(root["change_points_y"].getLength());
+  for (unsigned int i = 0; i < change_points_y.size(); i++) {
+    change_points_y[i] = root["change_points_y"][i];
+  }
+  std::vector<int> material_tmp(2, 0);
+  std::vector<std::vector<int>> interval_materials(
+      root["interval_materials_hi"].getLength(), material_tmp);
   for (unsigned int i = 0; i < interval_materials.size(); i++) {
-    interval_materials[i] = root["interval_materials"][i];
+    interval_materials[i][0] = root["interval_materials_lo"][i];
+    interval_materials[i][1] = root["interval_materials_hi"][i];
   }
   double grid_dx;
   cfg.lookupValue("grid_dx", grid_dx);
@@ -97,7 +105,8 @@ int main(int argc, char **argv) {
   cfg.lookupValue("out_path", out_path);
 
   proton_path p(initial_e_mean + 3 * initial_e_sd, dt, absorption_e,
-                change_points, interval_materials, materials);
+                change_points_x, change_points_y, interval_materials,
+                materials);
   int n = p.energy.size();
   Grid grid(n * grid_dx / dt, grid_dx);
 
@@ -109,8 +118,8 @@ int main(int argc, char **argv) {
       x[2] = gsl_ran_gaussian_ziggurat(gen, initial_x_sd);
     } while (x[1] * x[1] + x[2] * x[2] > nozzle_radius * nozzle_radius);
     p.reset(e0, x, w);
-    len = p.simulate(dt, absorption_e, change_points, interval_materials,
-                     materials, gen);
+    len = p.simulate(dt, absorption_e, change_points_x, change_points_y,
+                     interval_materials, materials, gen);
     grid.add(p.x, p.s, len);
   }
   grid.print(out_path);

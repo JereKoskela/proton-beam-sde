@@ -10,23 +10,9 @@ This simulation is part of the MaThRad collaboration work on stochastic differen
 ## Overview
 
 - The setup consists of a **20 × 20 × 20 cm³ water phantom** irradiated by a **monoenergetic proton beam**.
-- **Energy deposition** is scored using a **custom sensitive detector** that records hit positions and deposited energy.
-- Positions are converted to voxel indices to generate a 3D dose map.
-- The geometry can be modified to include **slabs of air** and/or **bone** of specific thicknesses using UI commands in the macro file.
-- Optional tracking of **secondary particles** and **hadElastic processes** is implemented but **disabled by default**.
-
----
-
-## Optional Features
-
-Additional information about **secondary particles** and **hadronic elastic interactions** can be stored in a ROOT file.  
-These features are **commented out by default** in:
-
-- `TrackingAction.cc`
-- `RunAction.cc`
-- `SteppingAction.cc`
-
-Uncomment the relevant sections to enable these outputs. To change the root file name, add `/output/rootFileName test.root` in your macro file.
+- **Energy deposition** is scored as a 3D histogram using a **Custom User Classes** and **G4AnalysisManager**.
+- The 3D histogram is created in `RunAction.cc` with a voxel size of 1 cubic mm across the entire phantom.
+- The geometry can be set with one of 3 different phantoms: **water, slab** or **insert**, these can be set using UI commands in the macro file.
 
 ---
 
@@ -47,16 +33,18 @@ auto physicsList = physicsFactory->GetReferencePhysList("QGSP_BIC_EMZ");
 ```
 ## Simulation Macros
 
-Five main macros reproduce the configurations used in the study, plus a test run:
+Each macro modifies the phantom geometry using the command `/phantom/select <geometry>` at the start.
+Two proton energies, 100 and 150 MeV, are used in the study. The possible macro configurations are as follows:
 
-| Macro file | Description |
-|-------------|--------------|
-| `run0.mac` | Test run |
-| `run_air.mac` | 5 cm air gap + 2 cm bone + water, 100 MeV protons |
-| `run_bone_100MeV.mac` | Bone slab only, 100 MeV protons |
-| `run_bone_150MeV.mac` | Bone slab only, 150 MeV protons |
-| `run_water_100MeV.mac` | Pure water phantom, 100 MeV protons |
-| `run_water_150MeV.mac` | Pure water phantom, 150 MeV protons |
+| Macro file              | Description                                                       |
+|-------------------------|-------------------------------------------------------------------|
+| `run0.mac`              | Test run                                                          |
+| `run_water_100MeV.mac`  | Pure water phantom, 100 MeV protons                               |
+| `run_water_150MeV.mac`  | Pure water phantom, 150 MeV protons                               |
+| `run_slab_100MeV.mac`   | 2 cm water + 1 cm bone + 2 cm lung + water, 100 MeV protons       |
+| `run_slab_150MeV.mac`   | 2 cm water + 1 cm bone + 2 cm lung + water, 150 MeV protons       |
+| `run_insert_100MeV.mac` | 3 cm water + 2 cm bone at top half only + water, 100 MeV protons  |
+| `run_insert_150MeV.mac` | 3 cm water + 2 cm bone at top half only + water, 100 MeV protons  |
 
 ---
 
@@ -83,11 +71,16 @@ After compilation, run the executable by specifying the macro file and number of
 ./ProtonTherapy -m <macrofile.mac> -t <nthreads>
 ```
 
-Each run will generate output `.csv` files containing the **3D energy deposition data** in the phantom for post-processing using Python scripts. 
-The output files are written to the `Output/` directory. To change it, modify the path of the output file names in the macro files.
+Each run will generate an output `.root` file containing the **3D energy deposition histogram** in the phantom for post-processing using Python scripts. 
+The output files are written to the `Output/` directory by default, but this can be changed in the macro file.
+
+For visualisation only, run the executable without specifying a macro file:
+```bash
+./ProtonTherapy
+```
+Then, set the desired geometry with the command `/phantom/select <geometry>` in the Geant4 idle and run the command `/control/execute refresh_vis.mac` to visualise the updated phantom.
 
 ## Notes
 
 - This code was developed and tested using **Geant4 version 11.3.0**. Detailed instructions on how to install Geant4 and its prerequisites can be found in https://geant4.web.cern.ch/download/11.3.0.html.
-- ROOT output may grow large, disable secondary tracking if not required.
-- To record simulation time, run by adding `time` right before the main running command. Example: `time ./ProtonTherapy -m run_bone_150MeV.mac -t 8`.
+- To record simulation time, run by adding `time` right before the main running command. Example: `time ./ProtonTherapy -m run_water_150MeV.mac -t 8`.

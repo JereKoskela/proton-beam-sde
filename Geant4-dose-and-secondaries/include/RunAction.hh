@@ -32,7 +32,6 @@
 
 #include "G4UserRunAction.hh"
 #include "globals.hh"
-#include "MyRun.hh"
 #include "G4GenericMessenger.hh"
 
 class G4Run;
@@ -47,14 +46,11 @@ class RunAction : public G4UserRunAction
 	public:
     	RunAction();
     	~RunAction() override;
-		G4Run* GenerateRun() override;
     	void BeginOfRunAction(const G4Run *) override;
     	void EndOfRunAction(const G4Run *) override;
-		void SetDoseOutputFileName(const G4String& name) {fDoseOutputFileName = name;}
 		void SetRootOutputFileName(const G4String& name) {fRootOutputFileName = name;}
 	private:
    		G4Timer *timer;
-		G4String fDoseOutputFileName;
 		G4String fRootOutputFileName;
 
 	    G4GenericMessenger* fMessenger;

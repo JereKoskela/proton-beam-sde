@@ -43,6 +43,7 @@ visualisation. To use it you will need:
 - itk (tested on version 5.4.4),
 - pymedphys (tested on version 0.40.0),
 - scipy (tested on version 1.14.1)
+- uproot (tested on version 4.0.0)
 
 All the necessary functions are written in `SDE_vs_G4.py`, whereas the execution scripts to produce the relevant figures 
 is written in `SDE_vs_G4_executionScript.py` (if the Geant4 files are available) or `SDE_plots.py` (for exclusively
@@ -77,24 +78,20 @@ For those unfamiliar with nuclear data libraries, we give a small tutorial which
 
 The interface for specifying materials is via the text files in the `Materials` folder.
 
-- The `atoms.txt` file lists all the atoms needed for all desired materials. Each row specifies an atom name as
-well as its atomic number and mass.
+- The `atoms.txt` file lists all chemical elements. Each row specifies an element name (for ease of reference) as well
+as its atomic number and mass.
 - The `materials.txt` lists names of all desired materials. Each material name must be accompanied by a corresponding
 `name.txt` file.
 - Each `name.txt` file lists three pieces of information. The first two rows contain the material density in `g / cm^3`
 and mean excitation energy in `eV`. Rows from the third specify the chemical composition of the material. Each of these
-rows consists of an atom ID and the corresponding fraction by mass of that atom in the material. The numerical IDs refer
-to the rows of `atoms.txt`, counting from zero.
+rows consists of an atomic number and the corresponding fraction by mass of that atom in the material.
 
-For example, if the rows of `atoms.txt` are:
+For example, water is specified as
 
-hydrogen 1 1\
-nitrogen 7 14\
-oxygen 8 16
+1.0\
+75.0\
+1 0.111\
+8 0.889
 
-then the stoichiometric rows of water are specified as
-
-0 0.111\
-2 0.889
-
-because water is approximately 1/9 hydrogen and 8/9 oxygen by mass.
+because it has density 1, mean excitation energy 75, and is approximately 1/9 hydrogen (atomic number 1) and 8/9 oxygen
+(atomic number 8) by mass.

@@ -6,14 +6,14 @@
 #define MAT
 
 struct Atom {
-  Atom(const int a0, const int z0, const std::string ne_r,
+  Atom(const double a0, const int z0, const std::string ne_r,
        const std::string el_ruth_cs, const std::string ne_ea,
        const double cutoff)
       : a(a0), z(z0), el_ruth_rate(el_ruth_cs, cutoff), ne_rate(ne_r),
         el_ruth_angle_cdf(el_ruth_cs, cutoff), ne_energy_angle(ne_ea) {}
 
   // Constructor for zero non-elastic rate for hydrogen
-  Atom(const int a0, const int z0, const std::string el_ruth_cs,
+  Atom(const double a0, const int z0, const std::string el_ruth_cs,
        const double cutoff, const double back_cutoff)
       : a(a0), z(z0), el_ruth_rate(el_ruth_cs, cutoff, back_cutoff), ne_rate(),
         el_ruth_angle_cdf(el_ruth_cs, cutoff, back_cutoff), ne_energy_angle() {}
@@ -66,9 +66,16 @@ struct Atom {
                            sqrt(e / out_energy_lab) / (a + 1);
     e = out_energy_lab;
     alpha = out_angle_lab;
+    if (out_energy_cm == 0) {
+      e = 0;
+      alpha = 1; // If outgoing energy is 0, then out_angle_lab should be 1,
+                 // rounding errors allow it to be slightly above 1 which is
+                 // invalid.
+    }
   }
 
-  const int a, z;
+  const double a;
+  const int z;
   CS_1d el_ruth_rate, ne_rate;
   CS_2d el_ruth_angle_cdf;
   CS_3d ne_energy_angle;
@@ -98,7 +105,7 @@ struct Material {
       std::stringstream iss;
       iss << line;
       getline(iss, token, ' ');
-      at.push_back(atoms[atoi(token.c_str())]);
+      at.push_back(atoms[atoi(token.c_str()) - 1]);
       getline(iss, token, ' ');
       x.push_back(atof(token.c_str()));
     }
@@ -123,8 +130,6 @@ struct Material {
     double mpcsq = 938.346; // mass of proton * speed of light squared, MeV
     double pv = (2 * mpcsq + e) * e / (mpcsq + e);
     double betasq = (2 * mpcsq + e) * e / pow(mpcsq + e, 2);
-    double c = 29979245800; // speed of light
-    double vel = sqrt(betasq) * c;
     double p = pv / sqrt(betasq); // momentum in MeV / c.
     // effective chi_c_sq is just the sum of individual elements
     double chi_c_sq = 0;
@@ -132,7 +137,8 @@ struct Material {
     for (unsigned int i = 0; i < at.size(); i++) {
       chi_c_sq += x[i] * at[i].z * (at[i].z + 1.0) / at[i].a;
       chi_a_sq_vec[i] = 2.007e-5 * pow(at[i].z, 2 / 3) *
-                        (1 + 3.34 * pow(at[i].z / (137 * vel), 2)) / (p * p);
+                        (1 + 3.34 * pow(at[i].z / (137 * sqrt(betasq)), 2)) /
+                        (p * p);
     }
     chi_c_sq *= 0.157 * dt * density / (pv * pv);
     // effective chi_a_sq is a weighted average on the log-scale

@@ -68,10 +68,13 @@ struct Grid {
     unsigned int iy, iz;
     std::vector<double> tmp(1, 0);
     std::vector<std::vector<double>> tmp2(1, tmp);
-    for (int i = 0; i < len; i++) {
-      ix = floor(y[i][0] / dx);
-      iy = floor(fabs(y[i][1]) / dx);
-      iz = floor(fabs(y[i][2]) / dx);
+    for (int i = 1; i < len; i++) {
+      const double x = 0.5 * (y[i][0] + y[i - 1][0]);
+      const double yy = 0.5 * (y[i][1] + y[i - 1][1]);
+      const double zz = 0.5 * (y[i][2] + y[i - 1][2]);
+      ix = floor(x / dx);
+      iy = floor(fabs(yy) / dx);
+      iz = floor(fabs(zz) / dx);
       if (ix >= 0) {
         if (ix >= int(x_pp.size())) {
           x_pp.resize(ix + 1, tmp2);
@@ -79,7 +82,7 @@ struct Grid {
           x_mp.resize(ix + 1, tmp2);
           x_mm.resize(ix + 1, tmp2);
         }
-        if (y[i][1] >= 0 && y[i][2] >= 0) {
+        if (yy >= 0 && zz >= 0) {
           if (iy >= x_pp[ix].size()) {
             x_pp[ix].resize(iy + 1, tmp);
           }
@@ -87,7 +90,7 @@ struct Grid {
             x_pp[ix][iy].resize(iz + 1, 0);
           }
           x_pp[ix][iy][iz] += s[i];
-        } else if (y[i][1] >= 0 && y[i][2] < 0) {
+        } else if (yy >= 0 && zz < 0) {
           if (iy >= x_pm[ix].size()) {
             x_pm[ix].resize(iy + 1, tmp);
           }
@@ -95,7 +98,7 @@ struct Grid {
             x_pm[ix][iy].resize(iz + 1, 0);
           }
           x_pm[ix][iy][iz] += s[i];
-        } else if (y[i][1] < 0 && y[i][2] >= 0) {
+        } else if (yy < 0 && zz >= 0) {
           if (iy >= x_mp[ix].size()) {
             x_mp[ix].resize(iy + 1, tmp);
           }

@@ -29,57 +29,27 @@
 
 #include "RunAction.hh"
 #include "G4Timer.hh"
-#include "Analysis.hh"
+#include "G4AnalysisManager.hh"
 #include "G4RunManager.hh"
-#include "MyRun.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 RunAction::RunAction()
     : G4UserRunAction(),
-	fDoseOutputFileName("edep_map.csv"),
-	fRootOutputFileName("ExtraInfoRun.root")
+	fRootOutputFileName("SimOutput.root")
 {
 	fMessenger = new G4GenericMessenger(this, "/output/", "Output control");
-	fMessenger->DeclareProperty("doseFileName", fDoseOutputFileName, "Set dose output csv file name");
 	fMessenger->DeclareProperty("rootFileName", fRootOutputFileName, "Set root output file name");
 
     timer = new G4Timer();
 	auto analysisManager = G4AnalysisManager::Instance();
 	analysisManager->SetFileName(fRootOutputFileName);
-	G4cout << "Using " << analysisManager->GetType() << G4endl;
-	analysisManager->SetVerboseLevel(1);
-	analysisManager->SetNtupleMerging(true); //only with root
+	analysisManager->SetH3Activation(true);
+	analysisManager->SetNtupleMerging(true);
 
-	// Creating ntuple
-	//
-	// analysisManager->CreateNtuple("SecondaryParticles", "SecondaryParticles");
-	// analysisManager->CreateNtupleIColumn("EventID");
-	// analysisManager->CreateNtupleIColumn("ParentID");
-	// analysisManager->CreateNtupleSColumn("Particle");
-	// analysisManager->CreateNtupleDColumn("InitEnergy");
-	// analysisManager->CreateNtupleDColumn("deltaE");
-	// analysisManager->CreateNtupleDColumn("InitPosX");
-	// analysisManager->CreateNtupleDColumn("InitPosY");
-	// analysisManager->CreateNtupleDColumn("InitPosZ");
-	// analysisManager->FinishNtuple();
-	//
-	// analysisManager->CreateNtuple("hadElasticData", "hadElasticData");
-	// analysisManager->CreateNtupleIColumn("EventID");
-	// analysisManager->CreateNtupleDColumn("preStepEnergy");
-	// analysisManager->CreateNtupleDColumn("eneTransfer");
-	// analysisManager->CreateNtupleDColumn("CosTheta");
-	// analysisManager->FinishNtuple();
-	//
-	// analysisManager->CreateNtuple("protonInelasticData", "protonInelasticData");
-	// analysisManager->CreateNtupleIColumn("EventID");
-	// analysisManager->CreateNtupleSColumn("Particle");
-	// analysisManager->CreateNtupleDColumn("KineticEnergy");
-	// analysisManager->CreateNtupleDColumn("posX");
-	// analysisManager->CreateNtupleDColumn("posY");
-	// analysisManager->CreateNtupleDColumn("posZ");
-	// analysisManager->CreateNtupleDColumn("InitProtonEnergy");
-	// analysisManager->FinishNtuple();
+	// Energy deposit
+	analysisManager->CreateH3("TotalEneDep", "Total energy deposit", 200, -100, 100, 200, -100, 100, 200, -100, 100,
+		"mm", "mm", "mm");
 }
 
 
@@ -90,13 +60,6 @@ RunAction::~RunAction()
 	delete G4AnalysisManager::Instance();
 	delete fMessenger;
 }
-
-
-G4Run* RunAction::GenerateRun()
-{
-	return new MyRun();
-}
-
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -121,19 +84,4 @@ void RunAction::EndOfRunAction(const G4Run* run)
 	auto analysisManager = G4AnalysisManager::Instance();
 	analysisManager->Write();
 	analysisManager->CloseFile();
-
-	const MyRun* myRun = static_cast<const MyRun*>(run);
-	const auto& edepMap = myRun->fTotalEdep;
-
-	std::ofstream outFile(fDoseOutputFileName);
-	outFile << "voxelX,voxelY,voxelZ,eDep\n";
-
-	for (const auto& [key, edep] : edepMap) {
-		int i, j, k;
-		std::tie(i, j, k) = key;
-		outFile << i << "," << j << "," << k << "," << edep << "\n";
-	}
-
-	outFile.close();
-	G4cout << "Energy deposition map saved to " << fDoseOutputFileName << "\n";
 }

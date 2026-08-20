@@ -140,7 +140,7 @@ struct Material {
     std::vector<double> chi_a_sq_vec(at.size());
     for (unsigned int i = 0; i < at.size(); i++) {
       chi_c_sq += x[i] * at[i].z * (at[i].z + 1.0) / at[i].a;
-      chi_a_sq_vec[i] = 2.007e-5 * pow(at[i].z, 2 / 3) *
+      chi_a_sq_vec[i] = 2.007e-5 * pow(at[i].z, 2.0 / 3.0) *
                         (1 + 3.34 * pow(at[i].z / (137 * sqrt(betasq)), 2)) /
                         (p * p);
     }

@@ -177,7 +177,7 @@ struct Material {
     double log_molecule_density =
         log(density) + log_avogadro; // molecules / cm^3
     double ret =
-        4 * M_PI * z * (1 - betasq / 2) / sqrt(1 - betasq) *
+        4 * M_PI * z * (1 - betasq / 2) / (1 - betasq) *
         exp(2 * (log(alpha) + log_hbar + log_c) + log_molecule_density);
     return sqrt(ret);
   }

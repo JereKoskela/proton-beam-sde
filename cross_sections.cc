@@ -55,7 +55,7 @@ struct CS_1d {
           tmp_count++;
           tmp_val_old = tmp_val;
         } else if (lin_inter_bool) {
-          lin_inter_val = (tmp_val - cuttoff) / (tmp_val - tmp_val_old);
+          lin_inter_val = (cutoff - tmp_val_old) / (tmp_val - tmp_val_old);
           lin_inter_bool = false;
         }
       }
@@ -160,7 +160,7 @@ struct CS_3d {
 
   CS_3d() : energy(), exit_energy(), cdf(), rvalue() {}
 
-  void sample_from_energy_index(const double energy_index, const double u,
+  void sample_from_energy_index(const int energy_index, const double u,
                                 double &out_energy_cm,
                                 double &out_rvalue) const {
     double diff = 0;

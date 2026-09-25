@@ -45,6 +45,13 @@ struct Atom {
                                    gsl_rng *gen) const {
     double out_rvalue, out_energy_cm;
     ne_energy_angle.sample(e, out_rvalue, out_energy_cm, gen);
+    if (out_energy_cm == 0) {
+      e = 0;
+      alpha = 1; // If outgoing energy is 0, then out_angle_lab should be 1,
+                 // rounding errors allow it to be slightly above 1 which is
+                 // invalid.
+      return;
+    }
     double eps_a = a * e / (a + 1);
     double eps_b = (a + 1) * out_energy_cm / a;
     double e_a = eps_a + s();
@@ -66,12 +73,6 @@ struct Atom {
                            sqrt(e / out_energy_lab) / (a + 1);
     e = out_energy_lab;
     alpha = out_angle_lab;
-    if (out_energy_cm == 0) {
-      e = 0;
-      alpha = 1; // If outgoing energy is 0, then out_angle_lab should be 1,
-                 // rounding errors allow it to be slightly above 1 which is
-                 // invalid.
-    }
   }
 
   const double a;
@@ -238,6 +239,10 @@ struct Material {
     for (unsigned int i = 0; i < at.size(); i++) {
       rate += x[i] * at[i].ne_rate.evaluate(e) / at[i].a;
     }
+    if (rate <=0){
+      // energy and direction remain unchanged if no non-elastic scattering occurs
+      return; 
+    }
     double u = gsl_rng_uniform(gen);
     double ind = 0;
     double tmp = (x[ind] * at[ind].ne_rate.evaluate(e) / at[ind].a) / rate;
@@ -278,6 +283,10 @@ struct Material {
     double rate = 0;
     for (unsigned int i = 0; i < at.size(); i++) {
       rate += x[i] * at[i].el_ruth_rate.evaluate(e) / at[i].a;
+    }
+    if (rate <= 0) {
+      // energy and direction remain unchanged if no Rutherford scattering occurs
+      return;
     }
     double u = gsl_rng_uniform(gen);
     int ind = 0;

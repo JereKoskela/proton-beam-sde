@@ -31,7 +31,7 @@ struct CS_1d {
       rate.push_back(atof(token.c_str()));
     }
   }
-  CS_1d(const std::string filename, const double cuttoff) : energy(), rate() {
+  CS_1d(const std::string filename, const double cutoff) : energy(), rate() {
     std::ifstream file;
     file.open(filename);
     std::string line, token;
@@ -51,7 +51,7 @@ struct CS_1d {
       iss2 << line;
       while (getline(iss2, token, ' ')) {
         tmp_val = atof(token.c_str());
-        if (tmp_val > cuttoff) {
+        if (tmp_val > cutoff) {
           tmp_count++;
           tmp_val_old = tmp_val;
         } else if (lin_inter_bool) {
@@ -231,7 +231,7 @@ struct CS_3d {
 
 struct CS_2d {
 
-  CS_2d(const std::string filename, const double cuttoff)
+  CS_2d(const std::string filename, const double cutoff)
       : energy(), exit_angle(), cdf() {
     std::ifstream file;
     file.open(filename);
@@ -254,14 +254,14 @@ struct CS_2d {
       iss2 << line;
       while (getline(iss2, token, ' ')) {
         tmp_val = atof(token.c_str());
-        if (tmp_val > cuttoff) {
+        if (tmp_val > cutoff) {
           tmp_count++;
           tmp_vec.push_back(tmp_val);
           tmp_val_old = tmp_val;
         } else if (lin_inter_bool) {
-          lin_inter_val = (cuttoff - tmp_val_old) / (tmp_val - tmp_val_old);
+          lin_inter_val = (cutoff - tmp_val_old) / (tmp_val - tmp_val_old);
           lin_inter_bool = false;
-          tmp_vec.push_back(cuttoff);
+          tmp_vec.push_back(cutoff);
         }
       }
       exit_angle.push_back(tmp_vec);

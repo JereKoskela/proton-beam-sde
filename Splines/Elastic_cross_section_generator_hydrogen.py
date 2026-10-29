@@ -281,7 +281,7 @@ for i in endf_dict[6][2]["subsection"][1]["E"].keys():
             #Ignores cross section data with scattering angle below both cut offs
             if CM_to_Lab_Frame(ang, Energy, 1, 1)<= max(cut_off,multiple_scattering_sd(Energy, 1, 1)*Gaussian_SD_cut_off):
                 pass
-            #Once backscatter cuttoff is hit, backscattering is no longer possible and both backscatter and forward scatter 
+            #Once backscatter cutoff is hit, backscattering is no longer possible and both backscatter and forward scatter 
             #density is given to the forward scatter proton
             elif ang >= math.cos(back_scatter_cut_off_cm) and Flag_back:
                 Flag_back = False
@@ -315,7 +315,7 @@ for i in endf_dict[6][2]["subsection"][1]["E"].keys():
         angle_discrete_True = []
         Flag_back_signed = True
         for i in range(len(Total_rate)):
-            #Once backscatter cuttoff is hit, backscattering is no longer possible and both backscatter and forward scatter 
+            #Once backscatter cutoff is hit, backscattering is no longer possible and both backscatter and forward scatter 
             #density is given to the forward scatter proton
             if Flag_back_signed and yy[i] >= math.cos(back_scatter_cut_off_cm):
                 angle_discrete_True.append(CM_to_Lab_Frame(yy[i], Energy, 1, 1))
